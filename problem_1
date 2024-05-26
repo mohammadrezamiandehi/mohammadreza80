@@ -1,0 +1,114 @@
+# Registers:
+# a0: pointer to the array
+# a1: start index
+# a2: end index
+
+.section .data
+array: .word 3, 6, 8, 10, 1, 2, 1
+n: .word 7
+
+.section .text
+.global _start
+
+# Function prototypes
+.global quicksort
+.global partition
+.global swap
+
+_start:
+    la a0, array       # Load address of the array
+    li a1, 0           # Start index
+    la t0, n
+    lw a2, 0(t0)       # Load array length (end index)
+    addi a2, a2, -1    # Convert length to end index
+    jal ra, quicksort  # Call quicksort function
+
+    # Exit program (environment call to exit)
+    li a7, 93          # ecall code for exit
+    ecall
+
+# quicksort function
+quicksort:
+    bge a1, a2, end_qs    # if start >= end, return
+    mv t0, a1              # store start in t0
+    mv t1, a2              # store end in t1
+    jal ra, partition      # partition the array
+    mv t2, a0              # save the returned pivot index in t2
+
+    # Recursively call quicksort on left part
+    mv a1, t0              # start index remains same
+    addi a2, t2, -1        # end index = pivot - 1
+    jal ra, quicksort
+
+    # Recursively call quicksort on right part
+    addi a1, t2, 1         # start index = pivot + 1
+    mv a2, t1              # end index remains same
+    jal ra, quicksort
+
+end_qs:
+    ret
+
+# partition function
+# Returns pivot index
+partition:
+    mv t3, a0              # t3 = array
+    mv t4, a1              # t4 = start
+    mv t5, a2              # t5 = end
+    add t6, t3, t4
+    lw t6, 0(t6)           # pivot = array[start]
+
+    addi t4, t4, 1         # i = start + 1
+    mv t7, t5              # j = end
+
+partition_loop:
+    blt t4, t7, left_scan
+    j right_scan
+
+left_scan:
+    slli t8, t4, 2
+    add t8, t3, t8
+    lw t9, 0(t8)           # array[i]
+    bge t9, t6, right_scan
+    addi t4, t4, 1
+    j partition_loop
+
+right_scan:
+    slli t10, t7, 2
+    add t10, t3, t10
+    lw t11, 0(t10)         # array[j]
+    ble t11, t6, swap
+    addi t7, t7, -1
+    j partition_loop
+
+swap:
+    blt t4, t7, do_swap
+    j end_partition
+
+do_swap:
+    mv a1, t4
+    mv a2, t7
+    jal ra, swap
+    addi t4, t4, 1
+    addi t7, t7, -1
+    j partition_loop
+
+end_partition:
+    addi t4, t4, -1
+    mv a1, t0
+    mv a2, t4
+    jal ra, swap
+    mv a0, t4              # return pivot index
+    ret
+
+# swap function
+swap:
+    slli t0, a1, 2         # multiply index by 4 (sizeof(int))
+    add t0, a0, t0         # t0 = array + index * 4
+    lw t1, 0(t0)           # load array[index]
+    slli t2, a2, 2
+    add t2, a0, t2         # t2 = array + index * 4
+    lw t3, 0(t2)           # load array[index]
+
+    sw t3, 0(t0)           # store array[index] in array[index]
+    sw t1, 0(t2)           # store array[index] in array[index]
+    ret
