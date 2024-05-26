@@ -1,0 +1,38 @@
+# ثبات‌ها:
+# a0: عدد ورودی (n)
+# a1: نتیجه (جذر صحیح)
+
+.section .text
+.global _start
+
+_start:
+    li a0, 37            # مثال عدد ورودی
+    call isqrt           # فراخوانی تابع جذر صحیح
+
+    # خروج از برنامه (فراخوانی محیطی برای خروج)
+    li a7, 93            # کد ecall برای خروج
+    ecall
+
+# تابع isqrt
+isqrt:
+    li t0, 0             # low = 0
+    srli t1, a0, 1       # high = n / 2
+    addi t1, t1, 1       # high = high + 1
+
+.isqrt_loop:
+    blt t0, t1, .continue # while low < high
+    mv a1, t0            # low را به عنوان نتیجه بازگردانید
+    ret
+
+.continue:
+    add t2, t0, t1       # mid = (low + high) / 2
+    srli t2, t2, 1
+
+    mul t3, t2, t2       # square = mid * mid
+    bge t3, a0, .check   # if square >= n, high = mid
+    addi t0, t2, 1       # low = mid + 1
+    j .isqrt_loop
+
+.check:
+    mv t1, t2            # high = mid
+    j .isqrt_loop
